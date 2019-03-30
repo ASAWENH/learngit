@@ -1,0 +1,55 @@
+计算属性
+1、当模板内表达式过长或逻辑复杂，推荐计算属性。
+2、计算属性用于完成各种复杂逻辑，并返回一个结果。
+表达式过长或逻辑复杂：
+<div>{{text.split("").reverse().join("")}}</div>
+使用计算属性：
+computed:{
+	computedPropertyName:function(){
+		return this.text.split("").reverse().join("")
+	}
+}
+3、计算属性的getter与setter
+	①默认包含getter
+	②若提供setter，手动修改计算属性时触发setter；否则不可修改计算属性
+4、计算属性依赖性
+数据依赖
+	①可依赖其他计算属性
+	②可依赖当前Vue实例数据或其他Vue实例数据
+	③依赖的数据发生变化时，才会重新取值，
+若依赖的数据不变，计算属性不更新，试图不更新
+5、与methods选项方法的区别
+①methods选项中的方法可接收参数，使用灵活
+②methods选项中的方法只要重新渲染就会被调用，因此函数会被执行；
+computed选项中的计算属性基于它的依赖缓存，依赖的数据不变，计算属性不更新
+<div id="app">
+	<span>{{text}}</span>
+	<br>
+	<span>{{getText()}}</span>
+</div>
+	
+var app=new Vue({
+	el:"#app",
+	data:{
+		number:"123,456"
+	},
+	computed:{
+		text:function(){
+			console.log("COMPUTED GET")
+				return Date.now()				}
+			},
+	methods:{
+		getText:function(){
+			console.log("METHOD GET")
+				return Date.now()
+			}
+		}
+})
+①页面在浏览器打开，显示一致：
+	1553939205073
+	1553939205073
+②在浏览器控制台输入app.text，结果与页面刚打开的结果一致：
+	1553939205073
+③在浏览器控制台输入app.getText(),输出结果为：
+	METHOD GET
+	1553939230106
