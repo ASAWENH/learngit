@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>simple shop list</title>
+</head>
+
+<body>
+	<div id="app">
+		<template v-if="list.length">
+			<table>
+				<thead>
+					<tr>
+						<td><input type="checkbox" @click="checkAll()" :checked="checkAllItems"></td>
+						<td></td>
+						<td >商品名称</td>
+						<td>商品单价</td>
+						<td>购买数量</td>
+						<td>操作</td>
+					</tr>
+				</thead>
+				<tbody>
+					<template v-for="(item,index) in list">
+						<tr>
+							<td><input type="checkbox" v-model="picked" :value=item></td>
+							<td>{{item.id}}</td>
+							<td>{{item.name}}</td>
+							<td>{{item.price}}</td>
+							<td><button 
+								@click="deleteItem(index)" 
+								:disabled="item.count===1">-</button>
+								{{item.count}}
+								<button @click="addItem(index)">+</button>
+							</td>
+							<td><button @click="removeItem(index)">删除</button></td>
+						</tr>
+					</template>
+				</tbody>
+			</table>
+			<div>总价为：￥{{totalPrice}}</div>
+		</template>
+		
+	</div>
+
+	<script src="https://unpkg.com/vue/dist/vue.js"></script>
+	<script>
+		var app=new Vue({
+			el:"#app",
+			data:{
+				checkAllItems:false,
+				picked:[],
+				list:[
+					{id:1,name:"iPhone 7",price:6188,count:1},
+					{id:2,name:"iPad Pro",price:5888,count:1},
+					{id:3,name:"MacBook Pro",price:21488,count:1}
+				]
+			},
+			computed:{
+				totalPrice:function(){
+					var total=0;
+					for(let i of this.picked){
+						total+=i.price*i.count;
+					}
+					return total;
+				}
+			},
+			methods:{
+				deleteItem:function(index){
+					if(this.list[index].count===1){
+						return;
+					}
+					this.list[index].count--;
+				},
+				addItem:function(index){
+					this.list[index].count++;
+				},
+				removeItem:function(index){
+					return this.list.splice(index,1);
+				},
+				checkAll:function(){
+					this.checkAllItems=this.checkAllItems?false:true;
+					if(this.checkAllItems){
+						for(let i of this.list){
+							this.picked.push(i);
+						}
+					}else{
+						this.picked=[];
+					}
+				}
+			}
+		})
+	</script>
+</body>
+</html>
