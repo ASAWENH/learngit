@@ -1,0 +1,36 @@
+v-bind及class与style绑定
+1、v-bind的主要用法为更新HTML元素的属性
+2、绑定class
+	①对象语法
+		将对象设置为v-bind:<propertyName>的值：
+			v-bind:class="{'className':'true'}"
+			(绑定类className,其属性值为真值,则表示该元素具有类className;若为假值,则不具有该类)
+			该对象的构成不拘于字面量、实例属性、实例方法、计算属性
+	②数组语法
+		给class属性绑定一个数组，应用一个class列表
+			v-bind:class="['className1','className2','className3']"
+			(绑定数组，同时应用className1、className2、className3)
+			该数组的构成不拘于字面量、实例属性、实例方法、计算属性
+	③应用于组件
+		在自定义组件上使用class或进行class绑定，class会应用于根元素
+		例如：
+		HTML——
+			<div id="app">
+				<mycomponent v-bind:class="myClass"></mycomponent>
+			</div>
+		JS——
+			Vue.component("mycomponent",{
+				template:"<div class='rootElement'><span>自定义组件</span></div>"
+			})
+			var app=new Vue({
+				el:"#app",
+				data:{
+					myClass:"className"
+				},
+			})
+		渲染结果——
+			<div id="app">
+				<div class="rootElement className"><span>自定义组件</span></div>
+			</div>
+3、绑定style
+	语法与绑定class无异
