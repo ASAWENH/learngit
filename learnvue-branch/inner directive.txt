@@ -1,0 +1,79 @@
+内置指令
+1、Vue.js的指令是带v-前缀的HTML特性(property),绑定一个表达式,并将一些特性应用于DOM上。
+2、基本指令
+	①v-cloak
+		用法:不需要表达式,Vue实例结束编译时从绑定的HTML元素上剔除,经常与display:none;结合使用。
+		意义:当网速较慢、Vue.js文件还没有加载完时,页面上的文本插值{{}}会显示,直到Vue创建实例、编译模板时,DOM才会被替换(初始化慢导致页面闪动);
+	在vue实例挂载的HTML元素上指定该特性,并设置css样式:[v-cloak]{display:none;}可解决该问题。
+	②v-once
+		用法:不需要表达式
+		意义:定义它的元素或组件只渲染一次,包括组建的所有子节点,首次渲染后,不再随数据的变化重新渲染,将被视为静态内容。
+3、条件渲染指令
+	Vue在渲染元素时,会尽可能复用已有元素而非重新渲染,使用key属性,标识某元素,决定是否复用元素
+	条件渲染指令意义:Vue.js的条件指令可以根据表达式的值在DOM中渲染或销毁元素/组件。若一次销毁多个元素,可在Vue.js内置<template>元素上使用条件指令。
+	①v-if
+	②v-else-if
+		用法:紧跟v-if
+	③v-else
+		用法:紧跟v-if或v-else-if
+	④v-show
+		用法:与v-if一致
+		意义:改变元素的css属性display,结果为假则添加display属性且display属性值为none。
+	⑤v-if与v-show
+		v-show不是条件渲染指令,应用于简单切换css属性,无论条件真与否,都会被编译;v-if只有条件首次为真时才会被编译。
+		v-if切换开销较大,适用于条件不经常改变的场景,而v-show适用于频繁切换条件。
+4、列表渲染指令
+	①v-for
+		用法:结合in使用，类似item in items形式;支持一个可选参数作为当前项的索引;可用于<<template>>将多个元素进行渲染。
+		意义:用于数组遍历、对象枚举、迭代整数
+		例子：
+			一般用法——
+				v-for="item in items"
+			带参数用法——
+				v-for="(item,index) in items"
+			用于<<template>>——
+				<template v-for="book in books">
+					<ul>
+						<li>{{book.author}}</li>
+						<li>{{book.name}}</li>
+						<li>{{book.price}}</li>
+					</ul>
+				</template>
+	②数组更新(修改数组时,Vue检测到数据变化,v-for渲染的视图会立即更新)
+		数组的变异方法(改变原数组)
+			push()、pop()、shift()、unshift()、splice()、sort()、reverse()
+		数组的非变异方法(不改变原数组,返回一个新数组)
+			filter()、concat()、slice()
+		Vue在检测到数组变化时,并不是直接渲染整个数组,而是最大化的复用DOM元素,替换的元素中,含有相同元素的项不会被重新渲染。
+		可利用数组的变异/非变异方法来修改数组,以触发试图更新;而根据索引直接修改数组某项或修改数组长度,不能出发试图更新。
+		例如：
+			app.books[2]={...};    =======>     ①使用Vue内置set方法 Vue.set(arr,index,newValue)②使用splice方法 app.books.splice(2,1,newValue)③webpack组件化方式
+			app.books.length=1;	   =======>     使用splice app.books.splice(1);(splice(startIndex,deleteCount,insertItems),
+												其中startIndex必需,不指定deleteCount则删除startIndex后所有元素,该方法返回被删除的元素组成的数组)
+5、方法与事件
+	①methods选项中定义方法
+	②v-on监听事件
+		调用methods中的方法,没有参数则可直接利用方法名,不带()
+		Vue提供特殊变量$event,用于访问原生DOM事件
+	③vue事件修饰符(可串联、可只应用修饰符)
+		.stop阻止冒泡
+		.prevent禁止默认操作
+		.capture使用事件捕获模式
+		.self当事件在元素本身触发时触发回调
+		.once只触发一次
+		按键修饰符(keyCode或快捷名称)
+			.enter
+			.tab
+			.delete
+			.esc
+			.space
+			.up
+			.down
+			.left
+			.right
+			
+			.ctrl
+			.alt
+			.shift
+			.meta(Mac下是Command键,Windows下是窗口键)
+		
