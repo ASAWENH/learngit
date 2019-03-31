@@ -1,0 +1,41 @@
+表单与v-model
+1、双向数据绑定:数据与视图关联,数据发生变化时,试图更新;试图发生变化时,数据更新,涉及UI控件(如表单控件)。
+2、单项数据绑定:非UI控件。
+3、利用表单控件与v-model指令实现双向数据绑定
+	***v-model绑定的数据属性的值是否包含表单元素的value,选中包含;否则不包含***
+	***使用v-model后，表单控件显示的值只依赖所绑定的数据，不关心初始化的value值***
+	例子：
+		HTML——
+			<div id="app">
+				<input type="text" v-model="message">
+				<br>
+				<span>{{message}}</span>
+			</div>
+		JS——
+			var app=new Vue({
+				el:"#app",
+				data:{
+					message:""
+				}
+			})
+		运行——
+			输入框输入"我们",输入框下方实时显示相应数据"我们";控制台访问app.message,值为"我们"   ======>试图改变,数据改变
+			控制台输入app.message="你们",输入框及输入框下方显示更新为"你们"     ======>数据改变,试图改变
+4、实例
+	①单选按钮
+		单独使用,checked绑定布尔值,真值则选中,假值则不选中;(v-bind:checked)
+		一组单选按钮,v-model结合value,数据v-model绑定的属性的值与按钮的value的值一致时,按钮被选中。
+	②复选框
+		单独使用,v-model绑定一个布尔值,真值则选中(true-value),假值则不选中(false-value);
+		一组复选框,v-model结合value,v-model绑定一个数组类型的数据,value的值在该数组内则选中,否则不选中。
+	③选择列表
+		单选:v-model绑定的数据优先匹配option元素的value属性的值,若无value则匹配option元素的text。
+		多选：添加multiple属性,v-model绑定一个数组,与复选框用法类似。
+5、v-model修饰符
+	.lazy
+		v-model默认在input事件中同步数据(除中文输入法情况外),该修饰符转变为change事件中同步。
+	.number
+		将输入转换成Number类型(输入为字符串类型)
+	.trim
+		自动忽略输入的首尾空格
+		
