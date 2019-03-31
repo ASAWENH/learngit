@@ -1,0 +1,148 @@
+组件详解
+1、组件与复用
+***自定义组件命名推荐连词符分割命名,不推荐驼峰命名法(HTML不区分大小写)***
+	①全局注册:Vue.component,任何Vue实例都可应用
+	②局部注册:Vue实例中使用components选项,该实例作用域下可应用;组件内可使用components选项注册组件,形成嵌套组件。
+	实例:
+		HTML——
+			<div id="app">
+				<parent-component></parent-component>
+			</div>
+		JS——
+			Vue.component("parent-component",{
+				template:"<div>父组件内容<child-component></child-component></div>",
+				components:{
+					"child-component":{
+						template:"<div>子组件内容</div>"
+					}
+				}
+			})
+			var app=new Vue({
+				el:"#app"
+			})
+		渲染结果——
+			<div id="app">
+				<div>
+					父组件内容
+					<div>子组件内容</div>
+				</div>
+			</div>
+	③Vue模板在某些情况下会受到HTML的限制,比如<table>中只允许<th><tr><td>等元素(<ul><ol><select>限制)。
+这些限制导致使用组件无效。
+	解决:利用is属性来挂载组件
+		<table>
+			<tbody is="my-component"></tbody>
+		</table>
+		利用了is属性后，渲染时tbody会被替换成组件内容。
+	④组件内的选项设置
+		与Vue实例注册大致相同,同样允许data、methods、computed等选项,
+	但data选项必须为函数,将数据通过return传递出去,return的数据可以是外部对象也可以是新建对象。
+	若是外部对象,则这个对象为共享,任何一方修改都会同步。
+		实例:
+			HTML——
+				<div id="app">
+					<my-component></my-component>
+				</div>
+			JS——
+				var returnData={
+					message:"This is a message",
+					name:"myMessage",
+					time:new Date()
+				}
+				Vue.component("my-component",{
+					template:"<div>{{message}}<br>{{name}}<br>{{time}}</div>",
+					data:function(){
+						/*return {
+							message:"This is a message",
+							name:"myMessage",
+							time:new Date()
+						}*/
+						return returnData;		
+					}
+				})
+				var app=new Vue({
+					el:"#app"
+				})
+			渲染结果——
+				<div id="app">
+					<div>
+						This is a message
+						<br>
+						myMessage
+						<br>
+						Sun Mar 31 2019 22:54:16 GMT+0800 (中国标准时间)
+					</div>
+				</div>
+2、使用props传递数据
+***组件不仅要达到模板内容可复用的目的,更重要的是组件间的相互通信***
+	①父组件模板包含子组件,父组件传递数据或参数给子组件,子组件接收到后,
+根据参数不同渲染不同内容或执行操作。
+	②props用法
+		选项props声明需要从父级接收的数据(字符串数组/对象),其中对象写法用于进行数据验证。
+	③可传递各种类型的数据,若数据类型不是string,使用v-bind,否则直接传递均解析为字符串。
+	④与Vue 1的区别(单向数据流)
+		Vue 2的props传递的数据是单向的,仅允许从父组件到子组件,将父组件与子组件解耦,避免子组件无意修改父组件状态。
+		Vue 1的props具有.sync修饰符,支持双向绑定。
+	***子组件通过引用父组件的prop来对prop的副本进行操作,避免影响父组件的状态***
+	***当prop为引用类型时,子组件操作其副本会影响父组件状态***
+	例如:
+		props:["propName"]
+		
+		data:function(){
+			return {
+				anotherName:this.propName//使用anotherName，避免直接操作propName
+			}
+		}
+		computed:{
+			//使用anotherName，避免直接操作propName
+			anotherName:function(){
+				return {
+					//doSomething with this.propName}
+				}
+			}
+		}
+	⑤数据验证
+		当prop需要验证时,传入一个对象。
+		props:{
+			propA:Number,//必须为Number类型
+			propB:[String,Number],//必须为String类型或Number类型
+			propC:{type:Boolean,default:true},//Boolean类型,默认值为true
+			propD:{type:Number,required:true},//Number类型,必传
+			propE:{type:Array,default:function(){return [];}},//Array类型,默认值以函数返回
+			propF:{validator:function(value){return value>10}}//自定义验证函数
+		}
+		验证的type可以是：
+			String
+			Number
+			Boolean
+			Object
+			Array
+			Function
+		type也可以是一个自定义构造器,使用instanceof检测。
+		关于数据验证：
+			HTML——
+				<div id="app">
+					<my-component pa="2"></my-component>
+				</div>
+			JS——
+				Vue.component("my-component",{
+					props:{
+						pa:Number
+					},
+					template:"<div>{{pa}}</div>"
+				})
+				var app=new Vue({
+					el:"#app"
+				})
+			运行——
+				控制台报错：[Vue warn]: Invalid prop: type check failed for prop "pa". 
+				Expected Number with value 2, got String with value "2".found in
+				---> <MyComponent>
+						<Root>
+			修改——
+				HTML——
+					<div id="app">
+						<my-component v-bind:pa="2"></my-component>
+					</div>
+			原因:若父组件直接传递数字、布尔值、数组、对象,而且不使用v-bind,
+				传递的仅是字符串。使用v-bind可传递其他类型。
