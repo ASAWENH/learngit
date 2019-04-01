@@ -1,0 +1,88 @@
+组件高级用法
+	①递归组件
+		为组件设置name选项,应设置条件以限制递归次数,否则会抛出错误:max stack size exceeded。
+		适用于开发具有未知层级关系的独立组件(联级选择器或树形控件等)。
+	②内联模板
+		inline-template特性,为组件添加该标签,可将该组件内的内容当作模板,避免被当作父内容分发。
+	③动态组件
+		<component>元素结合is特性用于动态挂载组件
+		<component :is="whichComponent"></component>
+		例子:
+			HTML——
+				<div id="app">
+					<component is='currentView'></component>
+					<button @click="handleChangeView('A')">Change to A</button>
+					<button @click="handleChangeView('B')">Change to B</button>
+					<button @click="handleChangeView('C')">Change to C</button>
+				</div>
+			JS——
+				var app=new Vue({
+					el:"#app",
+					data:{
+						currentView:'viewA'
+					},
+					components:{
+						viewA:{
+							template:"<span>view A</span>"
+						},
+						viewB:{
+							template:"<span>view B</span>"
+						},
+						viewC:{
+							template:"<span>view C</span>"
+						}
+					},
+					methods:{
+						handleChangeView:function(view){
+							this.currentView='view'+view
+						}
+					}
+				})
+			报错——
+				Unknown custom element: 
+				<currentView> - did you register the component correctly? 
+				For recursive components, make sure to provide the "name" option.(found in <Root>)
+				意思是currentView经过编译发现不是一个组件,is特性的值应该是一个组件,而这里其值是一个property。
+				(currentView声明为property,并不是声明为component,即使其值经过计算后的viewA为component)
+			修改HTML——
+				<div id="app">
+					<component :is='currentView'></component>
+					<button @click="handleChangeView('A')">Change to A</button>
+					<button @click="handleChangeView('B')">Change to B</button>
+					<button @click="handleChangeView('C')">Change to C</button>
+				</div>
+				***v-bind操作绑定属性的值 property or method***
+	④异步组件(性能考虑)
+		Vue允许将组件定义为一个工厂函数,动态地解析组件。
+		只在组件需要渲染时触发工厂函数,并且将结果缓存起来,用于后面的再次渲染。
+		例子:
+			Vue.component('child-component',function(resolve,reject){
+				window.setTimeout(function(){
+					resolve({
+						template:"<div>我是异步渲染的</div>"
+					})
+				},2000)
+			})
+			这里将组件定义为函数,以往的常见用法都是将组件定义为对象。
+	⑤其他
+		异步更新队列
+			Vue在观测到数据发生变化时,并不会立即更新DOM,而是会开启一个队列,
+			并缓冲同一事件循环中发生的所有数据变化。
+			缓冲时,会去除重复的数据,避免不必要的计算和DOM操作,
+			在下一个事件循环tick中,刷新队列并执行已经去重的工作。
+		$nextTick下一事件循环 ====>  function(fn,this)
+			用来知道何时DOM更新完成。
+		X-Template
+			<script>内使用text/x-template类型,并指定一个id,将这个id赋给template。
+		手动挂载实例
+			以往实例创建new Vue(),通过el选项挂载。
+			Vue手动挂载:Vue.extend、$mount两个方法。
+				Vue.extend是基础Vue构造器,创建一个"子类",参数是一个包含组件选项的对象。
+				$mount()用于手动挂载一个未挂载的实例,返回实例自身。
+				例子:
+					var MyComponent=Vue.extend({
+						template:"<div>This is a component</div>",
+					})
+					var app=new MyComponent().$mount("#app")
+					运行后id为app的元素会被替换为<div>This is a component</div>
+		
