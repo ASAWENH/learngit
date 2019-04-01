@@ -1,0 +1,333 @@
+组件详解
+1、组件与复用
+***自定义组件命名推荐连词符分割命名,不推荐驼峰命名法(HTML不区分大小写)***
+	①全局注册:Vue.component,任何Vue实例都可应用
+	②局部注册:Vue实例中使用components选项,该实例作用域下可应用;组件内可使用components选项注册组件,形成嵌套组件。
+	实例:
+		HTML——
+			<div id="app">
+				<parent-component></parent-component>
+			</div>
+		JS——
+			Vue.component("parent-component",{
+				template:"<div>父组件内容<child-component></child-component></div>",
+				components:{
+					"child-component":{
+						template:"<div>子组件内容</div>"
+					}
+				}
+			})
+			var app=new Vue({
+				el:"#app"
+			})
+		渲染结果——
+			<div id="app">
+				<div>
+					父组件内容
+					<div>子组件内容</div>
+				</div>
+			</div>
+	③Vue模板在某些情况下会受到HTML的限制,比如<table>中只允许<th><tr><td>等元素(<ul><ol><select>限制)。
+这些限制导致使用组件无效。
+	解决:利用is属性来挂载组件
+		<table>
+			<tbody is="my-component"></tbody>
+		</table>
+		利用了is属性后，渲染时tbody会被替换成组件内容。
+	④组件内的选项设置
+		与Vue实例注册大致相同,同样允许data、methods、computed等选项,
+	但data选项必须为函数,将数据通过return传递出去,return的数据可以是外部对象也可以是新建对象。
+	若是外部对象,则这个对象为共享,任何一方修改都会同步。
+		实例:
+			HTML——
+				<div id="app">
+					<my-component></my-component>
+				</div>
+			JS——
+				var returnData={
+					message:"This is a message",
+					name:"myMessage",
+					time:new Date()
+				}
+				Vue.component("my-component",{
+					template:"<div>{{message}}<br>{{name}}<br>{{time}}</div>",
+					data:function(){
+						/*return {
+							message:"This is a message",
+							name:"myMessage",
+							time:new Date()
+						}*/
+						return returnData;		
+					}
+				})
+				var app=new Vue({
+					el:"#app"
+				})
+			渲染结果——
+				<div id="app">
+					<div>
+						This is a message
+						<br>
+						myMessage
+						<br>
+						Sun Mar 31 2019 22:54:16 GMT+0800 (中国标准时间)
+					</div>
+				</div>
+2、使用props传递数据
+***组件不仅要达到模板内容可复用的目的,更重要的是组件间的相互通信***
+	①父组件模板包含子组件,父组件传递数据或参数给子组件,子组件接收到后,
+根据参数不同渲染不同内容或执行操作。
+	②props用法
+		选项props声明需要从父级接收的数据(字符串数组/对象),其中对象写法用于进行数据验证。
+	③可传递各种类型的数据,若数据类型不是string,使用v-bind,否则直接传递均解析为字符串。
+	④与Vue 1的区别(单向数据流)
+		Vue 2的props传递的数据是单向的,仅允许从父组件到子组件,将父组件与子组件解耦,避免子组件无意修改父组件状态。
+		Vue 1的props具有.sync修饰符,支持双向绑定。
+	***子组件通过引用父组件的prop来对prop的副本进行操作,避免影响父组件的状态***
+	***当prop为引用类型时,子组件操作其副本会影响父组件状态***
+	例如:
+		props:["propName"]
+		
+		data:function(){
+			return {
+				anotherName:this.propName//使用anotherName，避免直接操作propName
+			}
+		}
+		computed:{
+			//使用anotherName，避免直接操作propName
+			anotherName:function(){
+				return {
+					//doSomething with this.propName}
+				}
+			}
+		}
+	⑤数据验证
+		当prop需要验证时,传入一个对象。
+		props:{
+			propA:Number,//必须为Number类型
+			propB:[String,Number],//必须为String类型或Number类型
+			propC:{type:Boolean,default:true},//Boolean类型,默认值为true
+			propD:{type:Number,required:true},//Number类型,必传
+			propE:{type:Array,default:function(){return [];}},//Array类型,默认值以函数返回
+			propF:{validator:function(value){return value>10}}//自定义验证函数
+		}
+		验证的type可以是：
+			String
+			Number
+			Boolean
+			Object
+			Array
+			Function
+		type也可以是一个自定义构造器,使用instanceof检测。
+		关于数据验证：
+			HTML——
+				<div id="app">
+					<my-component pa="2"></my-component>
+				</div>
+			JS——
+				Vue.component("my-component",{
+					props:{
+						pa:Number
+					},
+					template:"<div>{{pa}}</div>"
+				})
+				var app=new Vue({
+					el:"#app"
+				})
+			运行——
+				控制台报错：[Vue warn]: Invalid prop: type check failed for prop "pa". 
+				Expected Number with value 2, got String with value "2".found in
+				---> <MyComponent>
+						<Root>
+			修改——
+				HTML——
+					<div id="app">
+						<my-component v-bind:pa="2"></my-component>
+					</div>
+			原因:若父组件直接传递数字、布尔值、数组、对象,而且不使用v-bind,
+				传递的仅是字符串。使用v-bind可传递其他类型。
+3、组件通信
+	组件通信:父子间通信、同胞间通信、跨级通信
+	①自定义事件
+		$emit与$on(观察者模式:观察者依赖被观察者,当被观察者自身状态发生变化时,观察者接收通知,并作出反应。)
+		父组件利用$on()或v-on监听子组件触发的自定义/DOM原生(.native修饰符)事件,子组件通过$emit()触发父组件的事件。
+		例子：
+			HTML——
+				<div id="app">
+					<p>{{total}}</p>
+					<my-component @reduce="handleGetTotal" @increase="handleGetTotal"></my-component>
+				</div>
+			JS——
+				Vue.component("my-component",{
+					template:"<div><button @click='handleReduce'>-</button><button @click='handleIncrease'>+</button></div>",
+					data:function(){
+						return {counter:0}
+					},
+					methods:{
+						handleReduce:function(){
+							this.counter--;
+							this.$emit('reduce',this.counter);
+						},
+						handleIncrease:function(){
+							this.counter++;
+							this.$emit('increase',this.counter);
+						}
+					}
+				})
+				var app=new Vue({
+					el:"#app",
+					data:{
+						total:0
+					},
+					methods:{
+						handleGetTotal:function(total){
+							this.total=total;
+						}
+					}
+				})
+			说明——
+				被观察者变化  ====>	 子组件template内使用v-on监听click事件,
+				被观察者告知观察者  ====>  事件触发则在相应函数里利用$emit()传递子组件自定义事件reduce/increase与参数(父组件事件需要的参数),
+				观察者作出反应  ====>  父组件利用v-on监听子组件的自定义事件reduce/increase,接收到子组件变化即触发父组件事件。
+	②使用v-model
+		语法糖v-model(实现过程中绑定input事件),实质与自定义事件一致。
+		例子:
+			v-model——
+				HTML——
+					<my-component v-model="total"></my-component>
+				JS——
+					Vue.component("my-component",{
+						template:"<div><button @click='handleClick'>+1</button></div>",
+						data:function(){
+							return {counter:0}
+						},
+						methods:{
+							handleClick:function(){
+								this.counter++;
+								this.$emit('input',this.counter);
+							}
+						}
+					})
+					var app=new Vue({
+						el:"#app",
+						data:{
+							total:0
+						}
+					})
+					
+			自定义事件——	
+				HTML——
+					<my-component @increase="getTotal"></my-component>
+				JS——
+					Vue.component("my-component",{
+						template:"<div><button @click='handleClick'>+1</button></div>",
+						data:function(){
+							return {counter:0}
+						},
+						methods:{
+							handleClick:function(){
+								this.counter++;
+								this.$emit('increase',this.counter);
+							}
+						}
+					})
+					var app=new Vue({
+						el:"#app",
+						data:{
+							total:0
+						},
+						methods:{
+							getTotal:function(total){
+								this.total=total;
+							}
+						}
+					})
+	③非父子组件通信
+		Vue 1中的$dispatch()与$broadcase()
+			$dispatch()向上级派发事件,$broadcase()上级向下级广播事件,均可在Vue实例的events选项中接受。
+			任何组建都可以接受,采取就近原则,在第一次接收后停止冒泡，除非返回true。
+		Vue 2
+			Vue 1中基于组件树结构的事件流的方式难以理解,且随组件结构扩展变得更脆弱;
+			提供的方法不能解决兄弟组件通信。
+			Vue 2推荐使用一个空的Vue实例作为中央时间总线(bus) ====>  通过中介来交涉,双方并不直接接触
+		父链(可延伸以形似链)  ====>  父子组件耦合度高
+			在子组件中可以通过$parent直接访问该组件的父实例或组件,父组件也可通过$children访问它所有的子组件。
+		子组件索引
+			利用特殊属性ref为子组件指定索引名称。通过$refs访问指定子组件。
+				(如果某个组件ref的值为comp,则父组件通过this.$refs.comp访问该子组件)
+4、分发内容(slot)
+·	①理解slot
+		slot在组件组合使用,混合父组件的内容与子组件的模板时使用。
+		组件的特点:
+			不知道本身的挂载点内容如何,挂载点的内容由父组件决定。
+			本身可能有模板。
+		例子:
+			<component-child>{{message}}</component-child>
+			此处子组件component-child的模板与父组件内容message混合使用。
+			子组件component-child不知道本身挂载点的内容(此处即message),由父组件决定。
+			子组件component-child有本身的模板。
+			(此处message是一个slot)
+	②编译的作用域
+		父(子)组件模板的内容是在父(子)组件作用域内编译的。
+		slot即由父组件分发的内容,作用域在父子件上,由父组件决定。
+	③slot用法
+		单个slot
+			使用<slot>元素可开启slot插槽,<slot>元素将被父组件分发的内容完全替代。
+		具名slot
+			给<slot>元素指定name属性,父组件分发的内容指定属性slot,
+			属性值为某个<slot>元素的name属性值,即为指定具名slot的位置与内容。
+	④作用域插槽
+	⑤访问slot
+		组件属性$slots.slotName
+	⑥实例
+	HTML——
+		<my-component>
+			<h2 slot="header">标题</h2>
+			<p>正文内容</p>
+			<p>更多正文内容</p>
+			<div slot="footer">底部信息</div>
+		</my-component>
+	JS bug1版本——
+		Vue.component("my-component",{
+			template:"<div class='header'>
+						<slot name='header'></slot>
+					</div>
+					<div class='main'>
+						<slot></slot>
+					</div>
+					<div class='footer'>
+						<slot name='footer'></slot>
+					</div>"
+		})
+		template没有根元素,报错
+	JS bug2版本——
+		Vue.component("my-component",{
+			template:"<div class='container'>
+						<div class='header'>
+							<slot name='header'></slot>
+						</div>
+						<div class='main'>
+						</div>
+						<div class='footer'>
+							<slot name='footer'></slot>
+						</div>
+					</div>"
+		})
+		子组件模板内未给class为main的div设置插槽,父组件未设置slot属性的内容无处安放,被忽略。
+		匿名插槽<slot></slot>容纳父组件不被具名slot容纳的内容。
+	JS——
+		Vue.component("my-component",{
+			template:"<div class='container'>
+						<div class='header'>
+							<slot name='header'></slot>
+						</div>
+						<div class='main'>
+							<slot></slot>
+						</div>
+						<div class='footer'>
+							<slot name='footer'></slot>
+						</div>
+					</div>"
+		})
+		具名slot:header&footer,匿名slot。
+	
