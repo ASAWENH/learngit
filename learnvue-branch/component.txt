@@ -146,3 +146,188 @@
 					</div>
 			原因:若父组件直接传递数字、布尔值、数组、对象,而且不使用v-bind,
 				传递的仅是字符串。使用v-bind可传递其他类型。
+3、组件通信
+	组件通信:父子间通信、同胞间通信、跨级通信
+	①自定义事件
+		$emit与$on(观察者模式:观察者依赖被观察者,当被观察者自身状态发生变化时,观察者接收通知,并作出反应。)
+		父组件利用$on()或v-on监听子组件触发的自定义/DOM原生(.native修饰符)事件,子组件通过$emit()触发父组件的事件。
+		例子：
+			HTML——
+				<div id="app">
+					<p>{{total}}</p>
+					<my-component @reduce="handleGetTotal" @increase="handleGetTotal"></my-component>
+				</div>
+			JS——
+				Vue.component("my-component",{
+					template:"<div><button @click='handleReduce'>-</button><button @click='handleIncrease'>+</button></div>",
+					data:function(){
+						return {counter:0}
+					},
+					methods:{
+						handleReduce:function(){
+							this.counter--;
+							this.$emit('reduce',this.counter);
+						},
+						handleIncrease:function(){
+							this.counter++;
+							this.$emit('increase',this.counter);
+						}
+					}
+				})
+				var app=new Vue({
+					el:"#app",
+					data:{
+						total:0
+					},
+					methods:{
+						handleGetTotal:function(total){
+							this.total=total;
+						}
+					}
+				})
+			说明——
+				被观察者变化  ====>	 子组件template内使用v-on监听click事件,
+				被观察者告知观察者  ====>  事件触发则在相应函数里利用$emit()传递子组件自定义事件reduce/increase与参数(父组件事件需要的参数),
+				观察者作出反应  ====>  父组件利用v-on监听子组件的自定义事件reduce/increase,接收到子组件变化即触发父组件事件。
+	②使用v-model
+		语法糖v-model(实现过程中绑定input事件),实质与自定义事件一致。
+		例子:
+			v-model——
+				HTML——
+					<my-component v-model="total"></my-component>
+				JS——
+					Vue.component("my-component",{
+						template:"<div><button @click='handleClick'>+1</button></div>",
+						data:function(){
+							return {counter:0}
+						},
+						methods:{
+							handleClick:function(){
+								this.counter++;
+								this.$emit('input',this.counter);
+							}
+						}
+					})
+					var app=new Vue({
+						el:"#app",
+						data:{
+							total:0
+						}
+					})
+					
+			自定义事件——	
+				HTML——
+					<my-component @increase="getTotal"></my-component>
+				JS——
+					Vue.component("my-component",{
+						template:"<div><button @click='handleClick'>+1</button></div>",
+						data:function(){
+							return {counter:0}
+						},
+						methods:{
+							handleClick:function(){
+								this.counter++;
+								this.$emit('increase',this.counter);
+							}
+						}
+					})
+					var app=new Vue({
+						el:"#app",
+						data:{
+							total:0
+						},
+						methods:{
+							getTotal:function(total){
+								this.total=total;
+							}
+						}
+					})
+	③非父子组件通信
+		Vue 1中的$dispatch()与$broadcase()
+			$dispatch()向上级派发事件,$broadcase()上级向下级广播事件,均可在Vue实例的events选项中接受。
+			任何组建都可以接受,采取就近原则,在第一次接收后停止冒泡，除非返回true。
+		Vue 2
+			Vue 1中基于组件树结构的事件流的方式难以理解,且随组件结构扩展变得更脆弱;
+			提供的方法不能解决兄弟组件通信。
+			Vue 2推荐使用一个空的Vue实例作为中央时间总线(bus) ====>  通过中介来交涉,双方并不直接接触
+		父链(可延伸以形似链)  ====>  父子组件耦合度高
+			在子组件中可以通过$parent直接访问该组件的父实例或组件,父组件也可通过$children访问它所有的子组件。
+		子组件索引
+			利用特殊属性ref为子组件指定索引名称。通过$refs访问指定子组件。
+				(如果某个组件ref的值为comp,则父组件通过this.$refs.comp访问该子组件)
+4、分发内容(slot)
+·	①理解slot
+		slot在组件组合使用,混合父组件的内容与子组件的模板时使用。
+		组件的特点:
+			不知道本身的挂载点内容如何,挂载点的内容由父组件决定。
+			本身可能有模板。
+		例子:
+			<component-child>{{message}}</component-child>
+			此处子组件component-child的模板与父组件内容message混合使用。
+			子组件component-child不知道本身挂载点的内容(此处即message),由父组件决定。
+			子组件component-child有本身的模板。
+			(此处message是一个slot)
+	②编译的作用域
+		父(子)组件模板的内容是在父(子)组件作用域内编译的。
+		slot即由父组件分发的内容,作用域在父子件上,由父组件决定。
+	③slot用法
+		单个slot
+			使用<slot>元素可开启slot插槽,<slot>元素将被父组件分发的内容完全替代。
+		具名slot
+			给<slot>元素指定name属性,父组件分发的内容指定属性slot,
+			属性值为某个<slot>元素的name属性值,即为指定具名slot的位置与内容。
+	④作用域插槽
+	⑤访问slot
+		组件属性$slots.slotName
+	⑥实例
+	HTML——
+		<my-component>
+			<h2 slot="header">标题</h2>
+			<p>正文内容</p>
+			<p>更多正文内容</p>
+			<div slot="footer">底部信息</div>
+		</my-component>
+	JS bug1版本——
+		Vue.component("my-component",{
+			template:"<div class='header'>
+						<slot name='header'></slot>
+					</div>
+					<div class='main'>
+						<slot></slot>
+					</div>
+					<div class='footer'>
+						<slot name='footer'></slot>
+					</div>"
+		})
+		template没有根元素,报错
+	JS bug2版本——
+		Vue.component("my-component",{
+			template:"<div class='container'>
+						<div class='header'>
+							<slot name='header'></slot>
+						</div>
+						<div class='main'>
+						</div>
+						<div class='footer'>
+							<slot name='footer'></slot>
+						</div>
+					</div>"
+		})
+		子组件模板内未给class为main的div设置插槽,父组件未设置slot属性的内容无处安放,被忽略。
+		匿名插槽<slot></slot>容纳父组件不被具名slot容纳的内容。
+	JS——
+		Vue.component("my-component",{
+			template:"<div class='container'>
+						<div class='header'>
+							<slot name='header'></slot>
+						</div>
+						<div class='main'>
+							<slot></slot>
+						</div>
+						<div class='footer'>
+							<slot name='footer'></slot>
+						</div>
+					</div>"
+		})
+		具名slot:header&footer,匿名slot。
+	
